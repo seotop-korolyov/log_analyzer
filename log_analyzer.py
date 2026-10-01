@@ -5,8 +5,6 @@ import sys, os, subprocess, argparse
 
 #Global variables
 exit_code = 0
-#Default parametr --top
-top = 5
 
 #Clear the screen
 subprocess.run(["clear"])
@@ -16,37 +14,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("log_path")
 parser.add_argument("--top", type=int, default=5)
 args = parser.parse_args()
-print(args)
-print(args.log_path)
 
-#Get log file name
-try:
-    argv_s = sys.argv
-    log_path = argv_s[1]
-except IndexError:
-    print("Usage: python3 log_analyzer.py <log_file>")
-    sys.exit(1)
+#Parameters
+log_path = args.log_path
+top = args.top
 
-#Get --top parameter
-try:
-    top_arg = argv_s[2] 
-    if top_arg == "--top":
-        if len(argv_s) < 4:
-            print("Error: --top requires a number")
-            sys.exit(1)
-        try:
-            top = int(argv_s[3])
-            if top <= 0:
-                print("Error: --top should be a positive number")
-                sys.exit(1)
-        except ValueError:
-            print("Error: --top must be a number")
-            sys.exit(1)
-    else:
-        print(f"Parameter {top_arg} was not found")
-        sys.exit(1)
-except IndexError:
-    pass
+#Checking --top parametr
+if top <= 0:
+    parser.error("--top must be a positive integer")
 
 if not os.path.exists(log_path):
     print(f"File {log_path} does not exist")
