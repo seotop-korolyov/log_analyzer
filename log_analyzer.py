@@ -12,7 +12,12 @@ top = 5
 subprocess.run(["clear"])
 
 #Parse arguments
-#argparse.
+parser = argparse.ArgumentParser()
+parser.add_argument("log_path")
+parser.add_argument("--top", type=int, default=5)
+args = parser.parse_args()
+print(args)
+print(args.log_path)
 
 #Get log file name
 try:
