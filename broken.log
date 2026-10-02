@@ -652,3 +652,4 @@
 2026-09-29 11:23:40 warning [web] pid=6610 API response time exceeded 1000ms
 2026-09-29 11:23:48 ERROR [worker] pid=7721 Database connection failed
 ERROR database-down
+ERROR database-down

@@ -55,39 +55,36 @@ def log_analyzer(log_path, service):
     malformed_lines = 0
     with open(log_path, "r") as log_file:
         for line in log_file:
-            line_lower = line.lower()
-            error_line = line.strip().split()
-            
-            # Check whether the error_line is valid
-            if len(error_line) < 6:
+            #Parse the line
+            error_line = parce_log_line(line)
+
+            if error_line is None:
                 malformed_lines += 1
                 continue
-            service_error = error_line[3].strip("[]")
-
-            if service is not None and service_error != service:
+            
+            if service is not None and error_line[1] != service:
                     continue
             total_lines += 1
 
             #Count errors
-            if "error" in line_lower:
+            if "error" in error_line[0]:
                 #Tottal errors
                 total_errors += 1
 
                 #Service errors
-                if service_error not in errors_by_service:
-                    errors_by_service[service_error] = 1
+                if error_line[1] not in errors_by_service:
+                    errors_by_service[error_line[1]] = 1
                 else:
-                    errors_by_service[service_error] += 1
+                    errors_by_service[error_line[1]] += 1
 
                 #Error message
-                error_line = " ".join(error_line[5:])
-                if error_line not in error_messages:
-                    error_messages[error_line] = 1
+                if error_line[2] not in error_messages:
+                    error_messages[error_line[2]] = 1
                 else:
-                    error_messages[error_line] += 1
+                    error_messages[error_line[2]] += 1
 
             #Count warnings
-            if "warning" in line_lower:
+            if "warning" in error_line[0]:
                 total_warnings += 1
 
     return total_lines, \
@@ -96,6 +93,21 @@ def log_analyzer(log_path, service):
             error_messages, \
             errors_by_service, \
             malformed_lines
+
+#Parce log_line
+def parce_log_line(line):
+    error_line = line.strip().split()
+    
+    # Check whether the error_line is valid
+    if len(error_line) < 6:
+        return None
+    level = line.lower()
+    service_error = error_line[3].strip("[]")
+    error_message = " ".join(error_line[5:])
+    
+    return level, service_error, error_message
+
+
 
 #Count lines, errors and warnings
 try:
