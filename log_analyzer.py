@@ -58,25 +58,22 @@ def log_analyzer(log_path, service):
             line_lower = line.lower()
             error_line = line.strip().split()
             
-            #Check wether the error_line is OK
+            # Check whether the error_line is valid
             if len(error_line) < 6:
                 malformed_lines += 1
                 continue
-            else:
-                service_error = error_line[3].strip("[]")
+            service_error = error_line[3].strip("[]")
 
-            if service is not None:
-                if service_error != service:
+            if service is not None and service_error != service:
                     continue
             total_lines += 1
 
-            #Count Errors
+            #Count errors
             if "error" in line_lower:
-                #Tottal lines
+                #Tottal errors
                 total_errors += 1
 
-                #Servcie error
-                service_error = error_line[3].strip("[]")
+                #Service errors
                 if service_error not in errors_by_service:
                     errors_by_service[service_error] = 1
                 else:
@@ -89,7 +86,7 @@ def log_analyzer(log_path, service):
                 else:
                     error_messages[error_line] += 1
 
-            #Count Warnings
+            #Count warnings
             if "warning" in line_lower:
                 total_warnings += 1
 
