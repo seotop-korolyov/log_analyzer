@@ -31,12 +31,21 @@ parser.add_argument(
     help="Analyze only the specified service",
     default=None
 )
+#--level
+parser.add_argument(
+    "--level", "-l",
+    type=str,
+    choices=["error", "warning", "info", "debug"],
+    default=None,
+    help="Choose a level from 'error', 'warning', 'info', or 'debug'"
+)
 args = parser.parse_args()
 
 #Parameters
 log_path = args.log_path
 top = args.top
 service = args.service
+level_filter = args.level
 
 #Checking --top parametr
 if top <= 0:
@@ -46,7 +55,7 @@ if not os.path.exists(log_path):
     print(f"File {log_path} does not exist")
     sys.exit(1)
 
-def log_analyzer(log_path, service):
+def log_analyzer(log_path, service, level_filter):
     total_lines = 0
     total_errors = 0
     total_warnings = 0
@@ -65,11 +74,14 @@ def log_analyzer(log_path, service):
             level, service_error, error_message = parsed
     
             if service is not None and service_error != service:
-                    continue
+                continue
+            if level_filter is not None and level != level_filter:
+                continue
+
             total_lines += 1
 
             #Count errors
-            if level == "error":
+            if level == "error" or level_filter == "error":
                 #Tottal errors
                 total_errors += 1
 
@@ -86,7 +98,7 @@ def log_analyzer(log_path, service):
                     error_messages[error_message] += 1
 
             #Count warnings
-            if level == "warning":
+            if level == "warning" or level_filter == "warning":
                 total_warnings += 1
 
     return total_lines, \
@@ -119,7 +131,7 @@ try:
     total_warnings, \
     error_messages, \
     errors_by_service, \
-    malformed_lines = log_analyzer(log_path, service)
+    malformed_lines = log_analyzer(log_path, service, level_filter)
 except PermissionError:
     print(f"Error: permission denied: {log_path}")
     sys.exit(1)
@@ -135,8 +147,10 @@ print(f"File: {log_path}")
 if service:
     print(f"Service: {service}")
 print(f"Total lines: {total_lines}")
-print(f"Errors: {total_errors}, rate: {error_rate:.2f}%")
-print(f"Warnings: {total_warnings}")
+if total_errors > 0:
+    print(f"Errors: {total_errors}, rate: {error_rate:.2f}%")
+if total_warnings > 0:
+    print(f"Warnings: {total_warnings}")
 print(f"Malformed lines: {malformed_lines} \n")
 print(f"=== ERRORS [TOP-{top}] ===")
 error_sorted = sorted(
