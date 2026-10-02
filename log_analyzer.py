@@ -72,16 +72,17 @@ def log_analyzer(log_path, service, level_filter):
                 continue
 
             level, service_error, error_message = parsed
-    
+
             if service is not None and service_error != service:
-                continue
-            if level_filter is not None and level != level_filter:
                 continue
 
             total_lines += 1
+        
+            if level_filter is not None and level != level_filter:
+                continue
 
             #Count errors
-            if level == "error" or level_filter == "error":
+            if level == "error":
                 #Tottal errors
                 total_errors += 1
 
@@ -98,7 +99,7 @@ def log_analyzer(log_path, service, level_filter):
                     error_messages[error_message] += 1
 
             #Count warnings
-            if level == "warning" or level_filter == "warning":
+            if level == "warning":
                 total_warnings += 1
 
     return total_lines, \
@@ -122,8 +123,6 @@ def parse_log_line(line):
     
     return level, service_error, error_message
 
-
-
 #Count lines, errors and warnings
 try:
     total_lines, \
@@ -146,10 +145,12 @@ print("=== LOG ANALYZER ===")
 print(f"File: {log_path}")
 if service:
     print(f"Service: {service}")
+if level_filter:
+    print(f"Level: {level_filter}")
 print(f"Total lines: {total_lines}")
-if total_errors > 0:
+if level_filter is None or level_filter == "error":
     print(f"Errors: {total_errors}, rate: {error_rate:.2f}%")
-if total_warnings > 0:
+if level_filter is None or level_filter == "warning":
     print(f"Warnings: {total_warnings}")
 print(f"Malformed lines: {malformed_lines} \n")
 print(f"=== ERRORS [TOP-{top}] ===")
