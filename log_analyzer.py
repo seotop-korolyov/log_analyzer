@@ -56,20 +56,20 @@ def log_analyzer(log_path, service):
     with open(log_path, "r") as log_file:
         for line in log_file:
             #Parse the line
-            error_line = parse_log_line(line)
+            parsed = parse_log_line(line)
 
-            if error_line is None:
+            if parsed is None:
                 malformed_lines += 1
                 continue
 
-            level, service_error, error_message = error_line
+            level, service_error, error_message = parsed
     
             if service is not None and service_error != service:
                     continue
             total_lines += 1
 
             #Count errors
-            if "error" in level:
+            if level == "error":
                 #Tottal errors
                 total_errors += 1
 
@@ -86,7 +86,7 @@ def log_analyzer(log_path, service):
                     error_messages[error_message] += 1
 
             #Count warnings
-            if "warning" in level:
+            if level == "warning":
                 total_warnings += 1
 
     return total_lines, \
@@ -137,19 +137,20 @@ if service:
 print(f"Total lines: {total_lines}")
 print(f"Errors: {total_errors}, rate: {error_rate:.2f}%")
 print(f"Warnings: {total_warnings}")
-print(f"Malformed lines: {malformed_lines}")
+print(f"Malformed lines: {malformed_lines} \n")
 print(f"=== ERRORS [TOP-{top}] ===")
 error_sorted = sorted(
     error_messages.items(), key=lambda item:item[1], reverse=True
     )
 for error, count in error_sorted[:top]:
     print(f"{error}: {count}")
-
+print("\n")
 print(f"=== ERRORS BY SERVICES [TOP-{top}] ===")
 errors_by_service_sorted = sorted(
     errors_by_service.items(), key=lambda item:item[1], reverse=True
 )
 for error, count in errors_by_service_sorted[:top]:
     print(f"{error}: {count}")
+print("\n\n")
 
 sys.exit(exit_code)
