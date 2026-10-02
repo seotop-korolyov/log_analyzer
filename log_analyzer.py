@@ -61,30 +61,32 @@ def log_analyzer(log_path, service):
             if error_line is None:
                 malformed_lines += 1
                 continue
-            
-            if service is not None and error_line[1] != service:
+
+            level, service_error, error_message = error_line
+    
+            if service is not None and service_error != service:
                     continue
             total_lines += 1
 
             #Count errors
-            if "error" in error_line[0]:
+            if "error" in level:
                 #Tottal errors
                 total_errors += 1
 
                 #Service errors
-                if error_line[1] not in errors_by_service:
-                    errors_by_service[error_line[1]] = 1
+                if service_error not in errors_by_service:
+                    errors_by_service[service_error] = 1
                 else:
-                    errors_by_service[error_line[1]] += 1
+                    errors_by_service[service_error] += 1
 
                 #Error message
-                if error_line[2] not in error_messages:
-                    error_messages[error_line[2]] = 1
+                if error_message not in error_messages:
+                    error_messages[error_message] = 1
                 else:
-                    error_messages[error_line[2]] += 1
+                    error_messages[error_message] += 1
 
             #Count warnings
-            if "warning" in error_line[0]:
+            if "warning" in level:
                 total_warnings += 1
 
     return total_lines, \
@@ -101,7 +103,8 @@ def parce_log_line(line):
     # Check whether the error_line is valid
     if len(error_line) < 6:
         return None
-    level = line.lower()
+    
+    level = error_line[2].lower()
     service_error = error_line[3].strip("[]")
     error_message = " ".join(error_line[5:])
     
