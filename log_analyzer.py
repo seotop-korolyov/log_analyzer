@@ -56,7 +56,7 @@ def log_analyzer(log_path, service):
     with open(log_path, "r") as log_file:
         for line in log_file:
             #Parse the line
-            error_line = parce_log_line(line)
+            error_line = parse_log_line(line)
 
             if error_line is None:
                 malformed_lines += 1
@@ -97,7 +97,7 @@ def log_analyzer(log_path, service):
             malformed_lines
 
 #Parce log_line
-def parce_log_line(line):
+def parse_log_line(line):
     error_line = line.strip().split()
     
     # Check whether the error_line is valid
