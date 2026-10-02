@@ -10,14 +10,33 @@ exit_code = 0
 subprocess.run(["clear"])
 
 #Parse arguments
-parser = argparse.ArgumentParser()
-parser.add_argument("log_path")
-parser.add_argument("--top", type=int, default=5)
+parser = argparse.ArgumentParser(
+    description="Analyze application logs and report errors and warnings."
+)
+#log_path
+parser.add_argument(
+    "log_path",
+    help="Path to the log file")
+#--top
+parser.add_argument(
+    "--top", "-t",
+    type=int,
+    default=5,
+    help="Number of top errors and services to display"
+)
+#--service
+parser.add_argument(
+    "--service", "-s",
+    type=str,
+    help="Analyze only the specified service",
+    default=None
+)
 args = parser.parse_args()
 
 #Parameters
 log_path = args.log_path
 top = args.top
+service = args.service
 
 #Checking --top parametr
 if top <= 0:
@@ -27,7 +46,7 @@ if not os.path.exists(log_path):
     print(f"File {log_path} does not exist")
     sys.exit(1)
 
-def log_analyzer(log_path):
+def log_analyzer(log_path, service):
     total_lines = 0
     total_errors = 0
     total_warnings = 0
@@ -37,15 +56,24 @@ def log_analyzer(log_path):
     with open(log_path, "r") as log_file:
         for line in log_file:
             line_lower = line.lower()
-            total_lines += 1
-            if "error" in line_lower:
-                total_errors += 1
-                error_line = line.strip().split()
+            error_line = line.strip().split()
+            
+            #Check wether the error_line is OK
+            if len(error_line) < 6:
+                malformed_lines += 1
+                continue
+            else:
+                service_error = error_line[3].strip("[]")
 
-                #Check wether the error_line is OK
-                if len(error_line) < 6:
-                    malformed_lines += 1
+            if service is not None:
+                if service_error != service:
                     continue
+            total_lines += 1
+
+            #Count Errors
+            if "error" in line_lower:
+                #Tottal lines
+                total_errors += 1
 
                 #Servcie error
                 service_error = error_line[3].strip("[]")
@@ -60,8 +88,11 @@ def log_analyzer(log_path):
                     error_messages[error_line] = 1
                 else:
                     error_messages[error_line] += 1
+
+            #Count Warnings
             if "warning" in line_lower:
                 total_warnings += 1
+
     return total_lines, \
             total_errors, \
             total_warnings, \
@@ -76,7 +107,7 @@ try:
     total_warnings, \
     error_messages, \
     errors_by_service, \
-    malformed_lines = log_analyzer(log_path)
+    malformed_lines = log_analyzer(log_path, service)
 except PermissionError:
     print(f"Error: permission denied: {log_path}")
     sys.exit(1)
@@ -89,6 +120,8 @@ else:
 
 print("=== LOG ANALYZER ===")
 print(f"File: {log_path}")
+if service:
+    print(f"Service: {service}")
 print(f"Total lines: {total_lines}")
 print(f"Errors: {total_errors}, rate: {error_rate:.2f}%")
 print(f"Warnings: {total_warnings}")
