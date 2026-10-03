@@ -187,18 +187,9 @@ if level_filter is None or level_filter == "warning":
 
 print(f"Malformed lines: {malformed_lines} \n")
 
-#Error section
-if level_filter is None or level_filter == "error":
-    output("error", stats["error"]["services"], top, stats["error"]["messages"])
-#Warning section
-if level_filter is None or level_filter == "warning":
-    output("warning", stats["warning"]["services"], top, stats["warning"]["messages"])
-#Info
-if level_filter is None or level_filter == "info":
-    output("info", stats["info"]["services"], top, stats["info"]["messages"])
-#Debug
-if level_filter is None or level_filter == "debug":
-    output("debug", stats["debug"]["services"], top, stats["debug"]["messages"])
+#Output by level_filter
+for level in stats:
+    output(level, stats[level]["services"], top, stats[level]["messages"])
 
 print("\n\n")
 
