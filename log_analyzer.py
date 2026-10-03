@@ -137,6 +137,21 @@ def parse_log_line(line):
     
     return level, service_error, error_message
 
+#Output
+def output(level, by_service, top, messages):
+    print(f"=== {level.upper()} [TOP-{top}] ===")
+    level_sorted = sorted(
+        messages.items(), key=lambda item:item[1], reverse=True
+    )
+    for warning, count in level_sorted[:top]:
+        print(f"{warning}: {count}")
+    print("\n")
+    print(f"=== {level.upper()} BY SERVICES [TOP-{top}] ===")
+    by_service_sorted = sorted(
+        by_service.items(), key=lambda item:item[1], reverse=True
+    )
+    for warning, count in by_service_sorted[:top]:
+        print(f"{warning}: {count}")
 
 
 #Count lines, errors and warnings
@@ -177,38 +192,12 @@ if level_filter is None or level_filter == "warning":
 print(f"Malformed lines: {malformed_lines} \n")
 #Error section
 if level_filter is None or level_filter == "error":
-    print(f"=== ERRORS [TOP-{top}] ===")
+    output("error", errors_by_service, top, error_messages)
 
-    error_sorted = sorted(
-        error_messages.items(), key=lambda item:item[1], reverse=True
-        )
-    for error, count in error_sorted[:top]:
-        print(f"{error}: {count}")
-
-    print("\n")
-    print(f"=== ERRORS BY SERVICES [TOP-{top}] ===")
-
-    errors_by_service_sorted = sorted(
-        errors_by_service.items(), key=lambda item:item[1], reverse=True
-    )
-    for error, count in errors_by_service_sorted[:top]:
-        print(f"{error}: {count}")
 #Warning section
 print("\n")
 if level_filter is None or level_filter == "warning":
-    print(f"=== WARNING [TOP-{top}] ===")
-    warning_sorted = sorted(
-        warning_messages.items(), key=lambda item:item[1], reverse=True
-    )
-    for warning, count in warning_sorted[:top]:
-        print(f"{warning}: {count}")
-    print("\n")
-    print(f"=== WARNING BY SERVICES [TOP-{top}] ===")
-    warning_by_service_sorted = sorted(
-        warning_by_service.items(), key=lambda item:item[1], reverse=True
-    )
-    for warning, count in warning_by_service_sorted[:top]:
-        print(f"{warning}: {count}")
+    output("warning", warning_by_service, top, warning_messages)
 
 print("\n\n")
 
