@@ -57,6 +57,7 @@ if not os.path.exists(log_path):
 
 def log_analyzer(log_path, service, level_filter):
     total_lines = 0
+    malformed_lines = 0
     stats = {
         "error": {
             "count": 0,
@@ -69,7 +70,6 @@ def log_analyzer(log_path, service, level_filter):
                     "services": {}
         }
     }
-    malformed_lines = 0
     with open(log_path, "r") as log_file:
         for line in log_file:
             #Parse the line
