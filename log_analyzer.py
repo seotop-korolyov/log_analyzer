@@ -57,12 +57,18 @@ if not os.path.exists(log_path):
 
 def log_analyzer(log_path, service, level_filter):
     total_lines = 0
-    total_errors = 0
-    total_warnings = 0
-    error_messages = {}
-    warning_messages = {}
-    errors_by_service = {}
-    warning_by_service = {}
+    stats = {
+        "error": {
+            "count": 0,
+            "messages": {},
+            "services": {}
+        },
+        "warning": {
+                    "count": 0,
+                    "messages": {},
+                    "services": {}
+        }
+    }
     malformed_lines = 0
     with open(log_path, "r") as log_file:
         for line in log_file:
@@ -73,7 +79,7 @@ def log_analyzer(log_path, service, level_filter):
                 malformed_lines += 1
                 continue
 
-            level, service_name, error_message = parsed
+            level, service_name, message = parsed
 
             if service is not None and service_name != service:
                 continue
@@ -85,57 +91,46 @@ def log_analyzer(log_path, service, level_filter):
 
             #Count errors
             if level == "error":
-                #Tottal errors
-                total_errors += 1
-
-                #Service errors
-                if service_name not in errors_by_service:
-                    errors_by_service[service_name] = 1
-                else:
-                    errors_by_service[service_name] += 1
-
-                #Error message
-                if error_message not in error_messages:
-                    error_messages[error_message] = 1
-                else:
-                    error_messages[error_message] += 1
+                statistic(stats, level, service_name, message)
 
             #Count warnings
             if level == "warning":
-                total_warnings += 1
-                #Warning by service
-                if service_name not in warning_by_service:
-                    warning_by_service[service_name] = 1
-                else:
-                    warning_by_service[service_name] += 1
-                #Warning message
-                if error_message not in warning_messages:
-                    warning_messages[error_message] = 1
-                else:
-                    warning_messages[error_message] += 1
+                statistic(stats, level, service_name, message)
 
     return total_lines, \
-            total_errors, \
-            total_warnings, \
-            error_messages, \
-            errors_by_service, \
-            warning_by_service, \
-            warning_messages, \
-            malformed_lines
+            malformed_lines, \
+            stats
 
 #Parce log_line
 def parse_log_line(line):
-    error_line = line.strip().split()
+    log_line = line.strip().split()
     
     # Check whether the error_line is valid
-    if len(error_line) < 6:
+    if len(log_line) < 6:
         return None
     
-    level = error_line[2].lower()
-    service_error = error_line[3].strip("[]")
-    error_message = " ".join(error_line[5:])
+    level = log_line[2].lower()
+    service_name = log_line[3].strip("[]")
+    message = " ".join(log_line[5:])
     
-    return level, service_error, error_message
+    return level, service_name, message
+
+#Stat
+def statistic(stats, level, service_name, message):
+    stats[level]["count"] += 1
+
+    #Service errors
+    if service_name not in stats[level]["services"]:
+        stats[level]["services"][service_name] = 1
+    else:
+        stats[level]["services"][service_name] += 1
+
+    #Error message
+    if message not in stats[level]["messages"]:
+        stats[level]["messages"][message] = 1
+    else:
+        stats[level]["messages"][message] += 1
+    return stats
 
 #Output
 def output(level, by_service, top, messages):
@@ -143,34 +138,29 @@ def output(level, by_service, top, messages):
     level_sorted = sorted(
         messages.items(), key=lambda item:item[1], reverse=True
     )
-    for warning, count in level_sorted[:top]:
-        print(f"{warning}: {count}")
+    for message, count in level_sorted[:top]:
+        print(f"{message}: {count}")
     print("\n")
     print(f"=== {level.upper()} BY SERVICES [TOP-{top}] ===")
     by_service_sorted = sorted(
         by_service.items(), key=lambda item:item[1], reverse=True
     )
-    for warning, count in by_service_sorted[:top]:
-        print(f"{warning}: {count}")
+    for message, count in by_service_sorted[:top]:
+        print(f"{message}: {count}")
 
 
 #Count lines, errors and warnings
 try:
     total_lines, \
-    total_errors, \
-    total_warnings, \
-    error_messages, \
-    errors_by_service, \
-    warning_by_service, \
-    warning_messages, \
-    malformed_lines = log_analyzer(log_path, service, level_filter)
+    malformed_lines, \
+    stats = log_analyzer(log_path, service, level_filter)
 except PermissionError:
     print(f"Error: permission denied: {log_path}")
     sys.exit(1)
 
 #Count error rate
 if total_lines > 0:
-    error_rate = ( total_errors / total_lines ) * 100
+    error_rate = ( stats["error"]['count'] / total_lines ) * 100
 else:
     error_rate = 0
 
@@ -184,20 +174,20 @@ if level_filter:
 print(f"Total lines: {total_lines}")
 
 if level_filter is None or level_filter == "error":
-    print(f"Errors: {total_errors}, rate: {error_rate:.2f}%")
+    print(f"Errors: {stats['error']['count']}, rate: {error_rate:.2f}%")
 
 if level_filter is None or level_filter == "warning":
-    print(f"Warnings: {total_warnings}")
+    print(f"Warnings: {stats['warning']['count']}")
 
 print(f"Malformed lines: {malformed_lines} \n")
 #Error section
 if level_filter is None or level_filter == "error":
-    output("error", errors_by_service, top, error_messages)
+    output("error", stats["error"]["services"], top, stats["error"]["messages"])
 
 #Warning section
 print("\n")
 if level_filter is None or level_filter == "warning":
-    output("warning", warning_by_service, top, warning_messages)
+    output("warning", stats["warning"]["services"], top, stats["warning"]["messages"])
 
 print("\n\n")
 
