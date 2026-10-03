@@ -89,12 +89,8 @@ def log_analyzer(log_path, service, level_filter):
             if level_filter is not None and level != level_filter:
                 continue
 
-            #Count errors
-            if level == "error":
-                statistic(stats, level, service_name, message)
-
-            #Count warnings
-            if level == "warning":
+            #Count statistic
+            if level in stats:
                 statistic(stats, level, service_name, message)
 
     return total_lines, \
