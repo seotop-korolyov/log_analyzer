@@ -68,6 +68,16 @@ def log_analyzer(log_path, service, level_filter):
                     "count": 0,
                     "messages": {},
                     "services": {}
+        },
+        "info": {
+                    "count": 0,
+                    "messages": {},
+                    "services": {}
+        },
+        "debug": {
+                    "count": 0,
+                    "messages": {},
+                    "services": {}
         }
     }
     with open(log_path, "r") as log_file:
@@ -91,7 +101,7 @@ def log_analyzer(log_path, service, level_filter):
 
             #Count statistic
             if level in stats:
-                statistic(stats, level, service_name, message)
+                update_stats(stats, level, service_name, message)
 
     return total_lines, \
             malformed_lines, \
@@ -112,7 +122,7 @@ def parse_log_line(line):
     return level, service_name, message
 
 #Stat
-def statistic(stats, level, service_name, message):
+def update_stats(stats, level, service_name, message):
     stats[level]["count"] += 1
 
     #Service errors
@@ -126,7 +136,6 @@ def statistic(stats, level, service_name, message):
         stats[level]["messages"][message] = 1
     else:
         stats[level]["messages"][message] += 1
-    return stats
 
 #Output
 def output(level, by_service, top, messages):
@@ -141,8 +150,9 @@ def output(level, by_service, top, messages):
     by_service_sorted = sorted(
         by_service.items(), key=lambda item:item[1], reverse=True
     )
-    for message, count in by_service_sorted[:top]:
-        print(f"{message}: {count}")
+    for service_name, count in by_service_sorted[:top]:
+        print(f"{service_name}: {count}")
+    print("\n")
 
 
 #Count lines, errors and warnings
@@ -176,14 +186,19 @@ if level_filter is None or level_filter == "warning":
     print(f"Warnings: {stats['warning']['count']}")
 
 print(f"Malformed lines: {malformed_lines} \n")
+
 #Error section
 if level_filter is None or level_filter == "error":
     output("error", stats["error"]["services"], top, stats["error"]["messages"])
-
 #Warning section
-print("\n")
 if level_filter is None or level_filter == "warning":
     output("warning", stats["warning"]["services"], top, stats["warning"]["messages"])
+#Info
+if level_filter is None or level_filter == "info":
+    output("info", stats["info"]["services"], top, stats["info"]["messages"])
+#Debug
+if level_filter is None or level_filter == "debug":
+    output("debug", stats["debug"]["services"], top, stats["debug"]["messages"])
 
 print("\n\n")
 
