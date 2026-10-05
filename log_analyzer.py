@@ -47,12 +47,12 @@ parser.add_argument(
     default=None,
     help="Analyze log entries from this time (YYYY-MM-DD HH:MM:SS)"
 )
-#--untill
+#--until
 parser.add_argument(
-    "--untill",
+    "--until",
     type=str,
     default=None,
-    help="Analyze log entries untill this time (YYYY-MM-DD HH:MM:SS)"
+    help="Analyze log entries until this time (YYYY-MM-DD HH:MM:SS)"
 )
 args = parser.parse_args()
 
@@ -62,7 +62,7 @@ top = args.top
 service = args.service
 level_filter = args.level
 since = args.since
-untill = args.untill
+until = args.until
 
 #Checking --top parametr
 if top <= 0:
@@ -72,7 +72,7 @@ if not os.path.exists(log_path):
     print(f"File {log_path} does not exist")
     sys.exit(1)
 
-def log_analyzer(log_path, service, level_filter, since, untill):
+def log_analyzer(log_path, service, level_filter, since, until):
     total_lines = 0
     malformed_lines = 0
     stats = {
@@ -110,7 +110,7 @@ def log_analyzer(log_path, service, level_filter, since, untill):
 
             if since is not None and timestamp < since:
                 continue
-            if untill is not None and timestamp > untill:
+            if until is not None and timestamp > until:
                 continue
 
             if service is not None and service_name != service:
@@ -203,13 +203,13 @@ def convert_datetime(time, time_rate):
             parser.error(f"--{time_rate} must use format YYYY-MM-DD HH:MM:SS")
 
 since = convert_datetime(args.since, "since")
-untill = convert_datetime(args.untill, "untill")
+until = convert_datetime(args.until, "until")
 
 #Count lines, errors and warnings
 try:
     total_lines, \
     malformed_lines, \
-    stats = log_analyzer(log_path, service, level_filter, since, untill)
+    stats = log_analyzer(log_path, service, level_filter, since, until)
 except PermissionError:
     print(f"Error: permission denied: {log_path}")
     sys.exit(1)
@@ -219,8 +219,8 @@ print("=== LOG ANALYZER ===")
 print(f"File: {log_path}")
 if since is not None:
     print(f"Since: {since}")
-if untill is not None:
-    print(f"Untill: {untill}")
+if until is not None:
+    print(f"Until: {until}")
 if service:
     print(f"Service: {service}")
 if level_filter:
