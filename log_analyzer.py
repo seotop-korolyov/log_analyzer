@@ -99,7 +99,7 @@ def log_analyzer(log_path, service, level_filter, since):
                 continue
 
             timestamp, level, service_name, message = parsed
-            if timestamp < since:
+            if since is not None and timestamp < since:
                 continue
 
             if service is not None and service_name != service:
