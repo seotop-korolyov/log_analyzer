@@ -45,7 +45,14 @@ parser.add_argument(
     "--since",
     type=str,
     default=None,
-    help="Analyze log entries from this time (YYYY-MM-DD HH:MM:SS)"    
+    help="Analyze log entries from this time (YYYY-MM-DD HH:MM:SS)"
+)
+#--untill
+parser.add_argument(
+    "--untill",
+    type=str,
+    default=None,
+    help="Analyze log entries untill this time (YYYY-MM-DD HH:MM:SS)"
 )
 args = parser.parse_args()
 
@@ -55,6 +62,7 @@ top = args.top
 service = args.service
 level_filter = args.level
 since = args.since
+untill = args.untill
 
 #Checking --top parametr
 if top <= 0:
@@ -64,7 +72,7 @@ if not os.path.exists(log_path):
     print(f"File {log_path} does not exist")
     sys.exit(1)
 
-def log_analyzer(log_path, service, level_filter, since):
+def log_analyzer(log_path, service, level_filter, since, untill):
     total_lines = 0
     malformed_lines = 0
     stats = {
@@ -99,7 +107,10 @@ def log_analyzer(log_path, service, level_filter, since):
                 continue
 
             timestamp, level, service_name, message = parsed
+
             if since is not None and timestamp < since:
+                continue
+            if untill is not None and timestamp > untill:
                 continue
 
             if service is not None and service_name != service:
@@ -180,20 +191,25 @@ def output(level, stats, top):
     print("\n")
 
 #Convert datetime
-if args.since is not None:
-    try:
-        since = datetime.strptime(
-            args.since,
-            "%Y-%m-%d %H:%M:%S"
-        )
-    except ValueError:
-        parser.error("--since must use format YYYY-MM-DD HH:MM:SS")
+def convert_datetime(time, time_rate):
+    if time is not None:
+        try:
+            time = datetime.strptime(
+                time,
+                "%Y-%m-%d %H:%M:%S"
+            )
+            return time
+        except ValueError:
+            parser.error(f"--{time_rate} must use format YYYY-MM-DD HH:MM:SS")
+
+since = convert_datetime(args.since, "since")
+untill = convert_datetime(args.untill, "untill")
 
 #Count lines, errors and warnings
 try:
     total_lines, \
     malformed_lines, \
-    stats = log_analyzer(log_path, service, level_filter, since)
+    stats = log_analyzer(log_path, service, level_filter, since, untill)
 except PermissionError:
     print(f"Error: permission denied: {log_path}")
     sys.exit(1)
@@ -201,6 +217,10 @@ except PermissionError:
 #Print out
 print("=== LOG ANALYZER ===")
 print(f"File: {log_path}")
+if since is not None:
+    print(f"Since: {since}")
+if untill is not None:
+    print(f"Untill: {untill}")
 if service:
     print(f"Service: {service}")
 if level_filter:
@@ -220,8 +240,6 @@ for level in stats:
     if level_filter is not None and level != level_filter:
         continue
     output(level, stats, top)
-
-print("\n\n")
 
 #Exit code
 sys.exit(exit_code)
