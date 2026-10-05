@@ -204,6 +204,10 @@ def convert_datetime(time, time_rate):
 
 since = convert_datetime(args.since, "since")
 until = convert_datetime(args.until, "until")
+if since is not None \
+    and until is not None \
+    and since > until:
+    parser.error(f"Since must be less than until")
 
 #Count lines, errors and warnings
 try:
