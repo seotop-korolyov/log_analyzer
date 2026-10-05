@@ -2,6 +2,7 @@
 
 #Modules
 import sys, os, subprocess, argparse
+from datetime import datetime
 
 #Global variables
 exit_code = 0
@@ -39,6 +40,13 @@ parser.add_argument(
     default=None,
     help="Choose a level from 'error', 'warning', 'info', or 'debug'"
 )
+#--since
+parser.add_argument(
+    "--since",
+    type=str,
+    default=None,
+    help="Analyze log entries from this time (YYYY-MM-DD HH:MM:SS)"    
+)
 args = parser.parse_args()
 
 #Parameters
@@ -46,6 +54,7 @@ log_path = args.log_path
 top = args.top
 service = args.service
 level_filter = args.level
+since = args.since
 
 #Checking --top parametr
 if top <= 0:
@@ -55,7 +64,7 @@ if not os.path.exists(log_path):
     print(f"File {log_path} does not exist")
     sys.exit(1)
 
-def log_analyzer(log_path, service, level_filter):
+def log_analyzer(log_path, service, level_filter, since):
     total_lines = 0
     malformed_lines = 0
     stats = {
@@ -89,7 +98,9 @@ def log_analyzer(log_path, service, level_filter):
                 malformed_lines += 1
                 continue
 
-            level, service_name, message = parsed
+            timestamp, level, service_name, message = parsed
+            if timestamp < since:
+                continue
 
             if service is not None and service_name != service:
                 continue
@@ -114,12 +125,18 @@ def parse_log_line(line):
     # Check whether the error_line is valid
     if len(log_line) < 6:
         return None
+
+    try:
+        timestamp_string = log_line[0] + " " + log_line[1]
+        timestamp = datetime.strptime(timestamp_string, "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return None
     
     level = log_line[2].lower()
     service_name = log_line[3].strip("[]")
     message = " ".join(log_line[5:])
     
-    return level, service_name, message
+    return timestamp, level, service_name, message
 
 #Stat
 def update_stats(stats, level, service_name, message):
@@ -137,38 +154,49 @@ def update_stats(stats, level, service_name, message):
     else:
         stats[level]["messages"][message] += 1
 
+#Count error rate
+def rate(stats, level, total_lines):
+    if total_lines > 0:
+        rate_number = ( stats[level]['count'] / total_lines ) * 100
+    else:
+        rate_number = 0
+    return rate_number
+
 #Output
-def output(level, by_service, top, messages):
+def output(level, stats, top):
     print(f"=== {level.upper()} [TOP-{top}] ===")
     level_sorted = sorted(
-        messages.items(), key=lambda item:item[1], reverse=True
+        stats[level]["messages"].items(), key=lambda item:item[1], reverse=True
     )
     for message, count in level_sorted[:top]:
         print(f"{message}: {count}")
     print("\n")
     print(f"=== {level.upper()} BY SERVICES [TOP-{top}] ===")
     by_service_sorted = sorted(
-        by_service.items(), key=lambda item:item[1], reverse=True
+        stats[level]["services"].items(), key=lambda item:item[1], reverse=True
     )
     for service_name, count in by_service_sorted[:top]:
         print(f"{service_name}: {count}")
     print("\n")
 
+#Convert datetime
+if args.since is not None:
+    try:
+        since = datetime.strptime(
+            args.since,
+            "%Y-%m-%d %H:%M:%S"
+        )
+    except ValueError:
+        parser.error("--since must use format YYYY-MM-DD HH:MM:SS")
 
 #Count lines, errors and warnings
 try:
     total_lines, \
     malformed_lines, \
-    stats = log_analyzer(log_path, service, level_filter)
+    stats = log_analyzer(log_path, service, level_filter, since)
 except PermissionError:
     print(f"Error: permission denied: {log_path}")
     sys.exit(1)
-
-#Count error rate
-if total_lines > 0:
-    error_rate = ( stats["error"]['count'] / total_lines ) * 100
-else:
-    error_rate = 0
 
 #Print out
 print("=== LOG ANALYZER ===")
@@ -179,17 +207,19 @@ if level_filter:
     print(f"Level: {level_filter}")
 print(f"Total lines: {total_lines}")
 
-if level_filter is None or level_filter == "error":
-    print(f"Errors: {stats['error']['count']}, rate: {error_rate:.2f}%")
-
-if level_filter is None or level_filter == "warning":
-    print(f"Warnings: {stats['warning']['count']}")
+#Output numbers of levels
+for level in stats:
+    if level_filter is not None and level != level_filter:
+        continue
+    print(f"{level.capitalize()} lines: {stats[level]['count']}, rate: {rate(stats, level, total_lines):.2f}%")
 
 print(f"Malformed lines: {malformed_lines} \n")
 
 #Output by level_filter
 for level in stats:
-    output(level, stats[level]["services"], top, stats[level]["messages"])
+    if level_filter is not None and level != level_filter:
+        continue
+    output(level, stats, top)
 
 print("\n\n")
 
